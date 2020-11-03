@@ -33,6 +33,8 @@ public class Proposta {
 	private BigDecimal salario;
 	@NotBlank @CpfCnpj
 	private String documento;
+	// @NotNull
+	private StatusAvaliacao statusAvaliacao;
 	
 	
 
@@ -45,6 +47,7 @@ public class Proposta {
 		this.endereco = endereco;
 		this.salario = salario;
 		this.documento = documento;
+		this.statusAvaliacao = StatusAvaliacao.nao_elegivel;
 	}
 
 
@@ -52,6 +55,18 @@ public class Proposta {
 	public Long getId() {
 		Assert.notNull(id, "O objeto precisa estar salvo para chamar o getId");
 		return id;
+	}
+
+
+	public String getDocumento() {
+		return documento;
+	}
+
+
+	public void atualizaStatus(StatusAvaliacao statusAvaliacao) {
+		Assert.isTrue(this.statusAvaliacao.equals(StatusAvaliacao.nao_elegivel), 
+				"A proposta sendo elegível, não é mais possível trocar");
+		this.statusAvaliacao = statusAvaliacao;
 	}
 	
 	

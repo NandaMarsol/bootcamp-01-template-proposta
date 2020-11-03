@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import br.com.zup.apicartaobrancoproposta.model.AvaliaProposta;
 import br.com.zup.apicartaobrancoproposta.model.Proposta;
+import br.com.zup.apicartaobrancoproposta.model.StatusAvaliacao;
 import br.com.zup.apicartaobrancoproposta.request.NovaPropostaRequest;
 import br.com.zup.apicartaobrancoproposta.validation.DocumentoIgualValidator;
 
@@ -29,6 +31,18 @@ public class NovaPropostaController {
 	@Autowired
 	DocumentoIgualValidator documentoIgualValidator;
 	
+	private AvaliaProposta avaliaProposta;
+	
+	
+	public NovaPropostaController(EntityManager manager, DocumentoIgualValidator documentoIgualValidator,
+			AvaliaProposta avaliaProposta) {
+		super();
+		this.manager = manager;
+		this.documentoIgualValidator = documentoIgualValidator;
+		this.avaliaProposta = avaliaProposta;
+	}
+
+
 	// endpoint de criação de uma nova proposta - método POST
 	@PostMapping(value = "/api/propostas") 
 	@Transactional
@@ -42,6 +56,9 @@ public class NovaPropostaController {
 		
 		Proposta novaProposta = request.toModel(); // toModel comportamento para criar uma nova Proposta
 		manager.persist(novaProposta);
+		
+		StatusAvaliacao avaliacao = avaliaProposta.executa(novaProposta);
+		novaProposta.atualizaStatus(avaliacao);
 		
 		URI enderecoConsulta = builder.path("/api/propostas/{id}").build(novaProposta.getId());
 		return ResponseEntity.created(enderecoConsulta).build();

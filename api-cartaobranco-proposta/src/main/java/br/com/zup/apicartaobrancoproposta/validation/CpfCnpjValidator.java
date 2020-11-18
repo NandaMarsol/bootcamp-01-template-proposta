@@ -8,10 +8,10 @@ import org.hibernate.validator.internal.constraintvalidators.hv.br.CPFValidator;
 
 // classe que representa o nosso validador, implementando a interface ConstraintValidator do Bean Validation
 // a interface requer dois parâmetros, o primeiro uma anotação e o segundo o tipo de atributo esperado
-public class CpfCnpjValidator implements ConstraintValidator<CpfCnpj, CharSequence> {
+public class CpfCnpjValidator implements ConstraintValidator<CpfCnpj, String> {
 
 	// implementando método isValid
-	public boolean isValid(CharSequence value, ConstraintValidatorContext context) {
+	public boolean isValid(String value, ConstraintValidatorContext context) {
 		if (value == null) {
 			return true;
 		}

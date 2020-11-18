@@ -1,76 +1,79 @@
 package br.com.zup.apicartaobrancoproposta.controller;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Optional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.transaction.Transactional;
 import javax.validation.Valid;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.slf4j.Logger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import br.com.zup.apicartaobrancoproposta.model.AvaliaProposta;
+import br.com.zup.apicartaobrancoproposta.exception.StandardError;
 import br.com.zup.apicartaobrancoproposta.model.Proposta;
-import br.com.zup.apicartaobrancoproposta.model.StatusAvaliacao;
+import br.com.zup.apicartaobrancoproposta.repository.PropostaRepository;
 import br.com.zup.apicartaobrancoproposta.request.NovaPropostaRequest;
-import br.com.zup.apicartaobrancoproposta.validation.DocumentoIgualValidator;
+import br.com.zup.apicartaobrancoproposta.service.AnaliseClienteService;
 
 @RestController
 public class NovaPropostaController {
+
+	private PropostaRepository propostaRepository;
 	
-	@PersistenceContext
-	private EntityManager manager;
+	private AnaliseClienteService analiseClienteService;
+
+	private Logger logger;
 	
-	@Autowired
-	DocumentoIgualValidator documentoIgualValidator;
-	
-	private AvaliaProposta avaliaProposta;
-	
-	
-	public NovaPropostaController(EntityManager manager, DocumentoIgualValidator documentoIgualValidator,
-			AvaliaProposta avaliaProposta) {
+
+	public NovaPropostaController(PropostaRepository propostaRepository, AnaliseClienteService analiseClienteService,
+			Logger logger) {
 		super();
-		this.manager = manager;
-		this.documentoIgualValidator = documentoIgualValidator;
-		this.avaliaProposta = avaliaProposta;
+		this.propostaRepository = propostaRepository;
+		this.analiseClienteService = analiseClienteService;
+		this.logger = logger;
 	}
 
 
 	// endpoint de criação de uma nova proposta - método POST
-	@PostMapping(value = "/api/propostas") 
-	@Transactional
-	// realizando a conversão de classes direto no ponto de recebimento do parâmetro que representa os dados da requisição
-	public ResponseEntity<?> criaProposta(@Valid @RequestBody NovaPropostaRequest request, UriComponentsBuilder builder) { // protegendo a borda na entrada
+	@PostMapping(value = "/api/propostas")
+	// realizando a conversão de classes direto no ponto de recebimento do
+	// parâmetro que representa os dados da requisição
+	public ResponseEntity<?> criaProposta(@Valid @RequestBody NovaPropostaRequest request,
+			UriComponentsBuilder builder) { // protegendo a borda na entrada
 		
-		if(!documentoIgualValidator.docValido(request)) { // se for igual
-			throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Este documento já está cadastrado!"); // retornando status code 422
+		Optional<Proposta> response = propostaRepository.findByDocumento(request.getDocumento());
+		
+		if(response.isPresent()) {
+			logger.warn("Tentativa de criação de proposta com o mesmo documento (CPF/CNPJ): " +request.getDocumento());
+			
+			return ResponseEntity.unprocessableEntity().body(new StandardError(Arrays.asList("Já existe uma proposta cadastrada com esse documento (CPF/CNPJ)")));
 		}
-		
-		
+
 		Proposta novaProposta = request.toModel(); // toModel comportamento para criar uma nova Proposta
-		manager.persist(novaProposta);
+		propostaRepository.save(novaProposta);
+
+		logger.info("Proposta criada com sucesso: " + novaProposta.toString());
 		
-		StatusAvaliacao avaliacao = avaliaProposta.executa(novaProposta);
-		novaProposta.atualizaStatus(avaliacao);
+		analiseClienteService.processarAnaliseDaProposta(novaProposta);
+		propostaRepository.save(novaProposta);
 		
+		logger.info("Análise da proposta do Cliente realizada: " +novaProposta.toString());
+
 		URI enderecoConsulta = builder.path("/api/propostas/{id}").build(novaProposta.getId());
 		return ResponseEntity.created(enderecoConsulta).build();
-		
+
 	}
 
 }
 
 /*
- * ResponseEntity: essa classe serve para passar todas as informações da requisição HTTP
- * ResponseEntity.created nos retorna o status 201 
+ * ResponseEntity: essa classe serve para passar todas as informações da
+ * requisição HTTP ResponseEntity.created nos retorna o status 201
  * 
- * UriComponentsBuilder: classe utilitária que ajuda a criar URIS
- * essa classe nos ajuda a lidar com problemas comuns de encodings presentes nas URIS
+ * UriComponentsBuilder: classe utilitária que ajuda a criar URIS essa classe
+ * nos ajuda a lidar com problemas comuns de encodings presentes nas URIS
  */

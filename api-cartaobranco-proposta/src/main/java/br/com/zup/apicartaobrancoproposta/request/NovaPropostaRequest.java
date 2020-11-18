@@ -36,8 +36,7 @@ public class NovaPropostaRequest {
 		this.documento = documento;
 	}
 
-	// método toModel para criar uma nova "Proposta"
-	// 
+	// método toModel para criar uma nova "Proposta" 
 	public Proposta toModel() {
 		return new Proposta(email, nome, endereco, salario, documento);
 	}

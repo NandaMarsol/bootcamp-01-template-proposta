@@ -1,6 +1,7 @@
 package br.com.zup.apicartaobrancoproposta.model;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -8,6 +9,7 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.NamedQuery;
+import javax.persistence.OneToOne;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -46,6 +48,9 @@ public class Proposta {
 	
 	@Enumerated(EnumType.STRING)
 	private StatusDaProposta statusDaProposta;
+	
+	@OneToOne
+	private Cartao cartao;
 	
 	@Deprecated
 	public Proposta(){	
@@ -87,7 +92,15 @@ public class Proposta {
 	@Override
 	public String toString() {
 		return "Proposta [id=" + id + ", email=" + email + ", nome=" + nome + ", endereco=" + endereco + ", salario="
-				+ salario + ", documento=" + documento + ", statusDaProposta=" + statusDaProposta + "]";
+				+ salario + ", documento=" + documento + ", statusDaProposta=" + statusDaProposta + ", cartao=" +cartao+ "]";
+	}
+
+	public void incluirCartaoNaProposta(Cartao cartao){
+		this.cartao = cartao;
+	}
+	
+	public boolean buscarSeNaoExisteCartao() {
+		return Objects.isNull(cartao);
 	}
 	
 }

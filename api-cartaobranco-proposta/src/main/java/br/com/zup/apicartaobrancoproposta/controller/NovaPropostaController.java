@@ -7,6 +7,7 @@ import java.util.Optional;
 import javax.validation.Valid;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,12 +30,11 @@ public class NovaPropostaController {
 	private Logger logger;
 	
 
-	public NovaPropostaController(PropostaRepository propostaRepository, AnaliseClienteService analiseClienteService,
-			Logger logger) {
+	public NovaPropostaController(PropostaRepository propostaRepository, AnaliseClienteService analiseClienteService) {
 		super();
 		this.propostaRepository = propostaRepository;
 		this.analiseClienteService = analiseClienteService;
-		this.logger = logger;
+		this.logger = LoggerFactory.getLogger(NovaPropostaController.class);
 	}
 
 
@@ -48,7 +48,7 @@ public class NovaPropostaController {
 		Optional<Proposta> response = propostaRepository.findByDocumento(request.getDocumento());
 		
 		if(response.isPresent()) {
-			logger.warn("Tentativa de criação de proposta com o mesmo documento (CPF/CNPJ): " +request.getDocumento());
+			logger.warn("[Criação da Proposta] Tentativa de criação de proposta com o mesmo documento (CPF/CNPJ): " +request.getDocumento());
 			
 			return ResponseEntity.unprocessableEntity().body(new StandardError(Arrays.asList("Já existe uma proposta cadastrada com esse documento (CPF/CNPJ)")));
 		}
@@ -56,12 +56,12 @@ public class NovaPropostaController {
 		Proposta novaProposta = request.toModel(); // toModel comportamento para criar uma nova Proposta
 		propostaRepository.save(novaProposta);
 
-		logger.info("Proposta criada com sucesso: " + novaProposta.toString());
+		logger.info("[Criação da Proposta] Proposta criada com sucesso: " + novaProposta.toString());
 		
 		analiseClienteService.processarAnaliseDaProposta(novaProposta);
 		propostaRepository.save(novaProposta);
 		
-		logger.info("Análise da proposta do Cliente realizada: " +novaProposta.toString());
+		logger.info("[Análise Financeira] Análise da proposta do Cliente realizada: " +novaProposta.toString());
 
 		URI enderecoConsulta = builder.path("/api/propostas/{id}").build(novaProposta.getId());
 		return ResponseEntity.created(enderecoConsulta).build();
